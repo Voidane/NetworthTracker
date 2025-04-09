@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Il2CppScheduleOne.Money;
@@ -32,13 +33,18 @@ namespace NetworthTracker
             get => networth;
         }
 
+        // Version Info
+        private const string versionCurrent = "1.0.0";
+        private const string versionMostUpToDateURL = "https://raw.githubusercontent.com/Voidane/NetworthTracker/refs/heads/master/Version.txt";
+        private string versionUpdate = null;
+
         public override void OnInitializeMelon()
         {
             MelonLogger.Msg($"===========================================");
             MelonLogger.Msg($"Initializing, Created by Voidane.");
             MelonLogger.Msg($"Discord: discord.gg/XB7ruKtJje");
             new ConfigData();
-            MelonLogger.Msg($"Has been initialized!");
+            CheckForUpdates();
         }
 
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
@@ -46,7 +52,6 @@ namespace NetworthTracker
             if (sceneName == "Main")
             {
                 mainSceneLoaded = true;
-                MelonLogger.Msg("Main scene loaded!");
                 MelonCoroutines.Start(WaitOnSceneLoad(null, "UI", 20.0F, (_UI) =>
                 {
                     UI = _UI;
@@ -70,12 +75,35 @@ namespace NetworthTracker
             }
         }
 
+        private async void CheckForUpdates()
+        {
+            try
+            {
+                using (HttpClient client = new HttpClient())
+                {
+                    string content = await client.GetStringAsync(versionMostUpToDateURL);
+                    versionUpdate = content.Trim();
+                }
+            }
+            catch (Exception e)
+            {
+                MelonLogger.Msg($"Could not fetch most up to date version {e.Message}");
+            }
+
+            if (versionCurrent != versionUpdate)
+            {
+                MelonLogger.Msg($"New Update for no trash mod! https://www.nexusmods.com/schedule1/mods/221?tab=files, Current: {versionCurrent}, Update: {versionUpdate}");
+            }
+
+            MelonLogger.Msg($"Has been initialized...");
+            MelonLogger.Msg($"===========================================");
+        }
+
         private IEnumerator UpdateNetworth()
         {
             while (true)
             {
                 MoneyManager money = MoneyManager.Instance;
-                MelonLogger.Msg("Cash: " + money.GetNetWorth());
                 Networth = (float) Math.Round(money.GetNetWorth(), 2);
                 yield return new WaitForSeconds(1.0F);
             }
@@ -87,7 +115,6 @@ namespace NetworthTracker
             float timeOutCounter = 0F;
             int attempt = 0;
 
-            MelonLogger.Msg($"Looking for {name} inside of {(parent == null ? "Hierarchy" : parent.gameObject.name)}");
             while (target == null && timeOutCounter < timeoutLimit)
             {
                 target = (parent == null) ? GameObject.Find(name).transform : parent.Find(name);
